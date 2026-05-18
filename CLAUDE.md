@@ -14,7 +14,7 @@ Output: `build/SHPPluginManager_artefacts/Release/SHP Plugin Manager.exe`
 **Release a new version** (see `../CLAUDE.md` §3.2 for the canonical recipe):
 1. Edit `Source/Main.cpp` → `getApplicationVersion()` must return the new version
 2. Commit, tag `vX.Y.Z`, push the tag
-3. CI builds the .exe + Inno Setup installer, attaches both to a Release on `akheron98/shp-plugin-manager`
+3. CI builds the .exe + Inno Setup installer, attaches both to a Release on `Sombre-Harfang-Productions/shp-plugin-manager`
 
 **Key classes** (this folder):
 - `MainComponent` — UI shell, hosts cards + Settings page + update banner
