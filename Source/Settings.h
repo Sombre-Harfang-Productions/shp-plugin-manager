@@ -43,5 +43,5 @@ private:
     juce::File   customPath;
     juce::String githubToken;
     juce::String registryUrl
-        { "https://raw.githubusercontent.com/akheron98/shp-plugin-registry/main/manifest.json" };
+        { "https://raw.githubusercontent.com/Sombre-Harfang-Productions/shp-plugin-registry/main/manifest.json" };
 };

@@ -2,7 +2,7 @@
 
 namespace
 {
-constexpr const char* kRepo      = "akheron98/shp-plugin-manager";
+constexpr const char* kRepo      = "Sombre-Harfang-Productions/shp-plugin-manager";
 constexpr const char* kUserAgent = "SHPPluginManager/0.1";
 
 juce::String stripV (juce::String s)

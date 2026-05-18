@@ -59,7 +59,7 @@ private:
                                       const juce::String& githubToken);
 
     juce::String manifestUrl
-        { "https://raw.githubusercontent.com/akheron98/shp-plugin-registry/main/manifest.json" };
+        { "https://raw.githubusercontent.com/Sombre-Harfang-Productions/shp-plugin-registry/main/manifest.json" };
     juce::String githubToken;
 
     juce::ThreadPool pool { 1 };
