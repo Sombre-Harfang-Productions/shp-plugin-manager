@@ -183,6 +183,8 @@ PluginInfo MainComponent::toPluginInfo (const RegistryPlugin& r) const
             info.status = PluginInfo::Status::updateAvailable;
     }
 
+    info.changelog = r.changelog;
+
     juce::String targetVersion = info.installedVersion.isNotEmpty() ? info.installedVersion : info.latestVersion;
     if (targetVersion.isNotEmpty() && r.githubRepo.isNotEmpty())
     {

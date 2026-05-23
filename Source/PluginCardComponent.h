@@ -14,8 +14,11 @@ public:
     std::function<void (const PluginInfo&)> onAction;
 
 private:
+    void showChangelog();
+
     PluginInfo info;
     juce::TextButton actionButton;
     juce::TextButton manualButton;
+    juce::TextButton changelogButton;
     juce::Image logo;
 };

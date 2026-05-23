@@ -1,6 +1,14 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <vector>
+
+struct ChangelogEntry
+{
+    juce::String version;
+    juce::String date;   // YYYY-MM-DD, from published_at
+    juce::String body;   // release notes markdown
+};
 
 struct PluginInfo
 {
@@ -21,6 +29,8 @@ struct PluginInfo
     juce::String manualUrl;
     juce::String errorMessage;          // populated when Status::error or Status::noRelease
     Status status { Status::notInstalled };
+
+    std::vector<ChangelogEntry> changelog;   // all versions, latest first
 
     juce::String statusLabel() const
     {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "PluginInfo.h"
 
 struct RegistryPlugin
 {
@@ -20,6 +21,8 @@ struct RegistryPlugin
     juce::String latestVersion;     // tag without prefix; empty if no release
     juce::String latestAssetUrl;    // direct download URL of the matched .zip; empty if none
     juce::String releaseError;      // human-readable error message (e.g. rate limit, no release)
+
+    std::vector<ChangelogEntry> changelog;  // all versions, latest first
 };
 
 struct RegistryFetchResult

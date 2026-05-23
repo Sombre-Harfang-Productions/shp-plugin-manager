@@ -4,6 +4,57 @@
 
 using namespace shp::theme;
 
+//==============================================================================
+namespace
+{
+
+class ChangelogDialog : public juce::Component
+{
+public:
+    explicit ChangelogDialog (const PluginInfo& pluginInfo)
+    {
+        juce::String text;
+
+        if (pluginInfo.changelog.empty())
+        {
+            text = "(aucune note de version disponible)";
+        }
+        else
+        {
+            for (const auto& entry : pluginInfo.changelog)
+            {
+                text << "v" << entry.version;
+                if (entry.date.isNotEmpty())
+                    text << "   " << entry.date;
+                text << "\n"
+                     << juce::String (juce::CharPointer_UTF8 ("\xe2\x94\x80")).repeated (44)
+                     << "\n";
+                text << (entry.body.isNotEmpty() ? entry.body : "(pas de notes)") << "\n\n";
+            }
+        }
+
+        editor.setMultiLine (true);
+        editor.setReadOnly (true);
+        editor.setScrollbarsShown (true);
+        editor.setFont (monoFont (11.0f));
+        editor.setText (text.trimEnd(), false);
+        editor.setColour (juce::TextEditor::backgroundColourId, surfaceDeep);
+        editor.setColour (juce::TextEditor::textColourId,       bone);
+        editor.setColour (juce::TextEditor::outlineColourId,    railDark);
+        editor.setColour (juce::TextEditor::shadowColourId,     juce::Colours::transparentBlack);
+        addAndMakeVisible (editor);
+
+        setSize (520, 400);
+    }
+
+    void resized() override { editor.setBounds (getLocalBounds().reduced (8)); }
+
+private:
+    juce::TextEditor editor;
+};
+
+} // anonymous namespace
+
 PluginCardComponent::PluginCardComponent (PluginInfo i)
     : info (std::move (i))
 {
@@ -19,9 +70,18 @@ PluginCardComponent::PluginCardComponent (PluginInfo i)
     {
         addAndMakeVisible (manualButton);
         manualButton.setButtonText ("MANUEL");
-        manualButton.setColour (juce::TextButton::buttonColourId, shp::theme::surface);
-        manualButton.setColour (juce::TextButton::textColourOffId, shp::theme::bone.withAlpha(0.86f));
+        manualButton.setColour (juce::TextButton::buttonColourId, surface);
+        manualButton.setColour (juce::TextButton::textColourOffId, bone.withAlpha (0.86f));
         manualButton.onClick = [this] { juce::URL (info.manualUrl).launchInDefaultBrowser(); };
+    }
+
+    if (! info.changelog.empty())
+    {
+        addAndMakeVisible (changelogButton);
+        changelogButton.setButtonText ("NOTES");
+        changelogButton.setColour (juce::TextButton::buttonColourId, surface);
+        changelogButton.setColour (juce::TextButton::textColourOffId, bone.withAlpha (0.86f));
+        changelogButton.onClick = [this] { showChangelog(); };
     }
 
     logo = juce::ImageCache::getFromMemory (BinaryData::shp_logo_v3_png,
@@ -126,15 +186,38 @@ void PluginCardComponent::paint (juce::Graphics& g)
 
 void PluginCardComponent::resized()
 {
-    auto rightArea = juce::Rectangle<int> (getWidth() - 200, 0, 200, getHeight());
-    auto buttonRect = rightArea.withSizeKeepingCentre (160, 30).translated (-10, 30);
-    
-    actionButton.setBounds (buttonRect);
+    const bool hasAct = actionButton.isVisible();
+    const bool hasMn  = manualButton.isVisible();
+    const bool hasCl  = changelogButton.isVisible();
 
-    if (info.manualUrl.isNotEmpty())
+    // Single button row in the lower portion of the right zone.
+    // Built right-to-left so order on screen is [NOTES][MANUEL][Action].
+    auto row = juce::Rectangle<int> (getWidth() - 200, getHeight() - 36, 200, 28);
+
+    if (hasAct)
     {
-        // Place the manual button to the left of the action button
-        auto manualRect = buttonRect.translated (-100, 0).withWidth (90);
-        manualButton.setBounds (manualRect);
+        actionButton.setBounds (row.removeFromRight (82));
+        if (hasMn || hasCl) row.removeFromRight (4);
     }
+    if (hasMn)
+    {
+        manualButton.setBounds (row.removeFromRight (54));
+        if (hasCl) row.removeFromRight (4);
+    }
+    if (hasCl)
+        changelogButton.setBounds (row.removeFromRight (54));
+}
+
+void PluginCardComponent::showChangelog()
+{
+    auto* content = new ChangelogDialog (info);
+
+    juce::DialogWindow::LaunchOptions opts;
+    opts.content.setOwned (content);
+    opts.dialogTitle            = info.name.toUpperCase() + " — NOTES DE VERSION";
+    opts.dialogBackgroundColour = background;
+    opts.escapeKeyTriggersCloseButton = true;
+    opts.useNativeTitleBar      = false;
+    opts.resizable              = false;
+    opts.launchAsync();
 }

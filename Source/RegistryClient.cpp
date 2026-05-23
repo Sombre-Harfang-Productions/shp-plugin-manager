@@ -154,21 +154,21 @@ void RegistryClient::resolveLatestRelease (RegistryPlugin& plugin,
                                            const juce::String& githubToken)
 {
     // Branch 1 — namespaced multi-plugin repo (e.g. shp-builds): list releases and
-    // pick the first one whose tag starts with our prefix.
+    // pick the first one whose tag starts with our prefix. Collect all for changelog.
     if (plugin.tagPrefix.isNotEmpty())
     {
         const auto listUrl = "https://api.github.com/repos/" + plugin.githubRepo
                            + "/releases?per_page=100";
 
         juce::String err;
-        const auto body = httpGet (juce::URL (listUrl), githubToken, err);
-        if (body.isEmpty())
+        const auto json = httpGet (juce::URL (listUrl), githubToken, err);
+        if (json.isEmpty())
         {
             plugin.releaseError = err.isNotEmpty() ? err : "No release available";
             return;
         }
 
-        auto root = juce::JSON::parse (body);
+        auto root = juce::JSON::parse (json);
         auto* arr = root.getArray();
         if (arr == nullptr)
         {
@@ -177,34 +177,49 @@ void RegistryClient::resolveLatestRelease (RegistryPlugin& plugin,
         }
 
         // /releases is ordered by created_at desc, so the first match is the latest.
+        // Iterate ALL matching releases to build the full changelog.
         for (auto& rel : *arr)
         {
             const auto tag = rel.getProperty ("tag_name", {}).toString();
             if (! tag.startsWith (plugin.tagPrefix))
                 continue;
 
-            plugin.latestVersion = tag.substring (plugin.tagPrefix.length()).trim();
-            const auto expected = expandPattern (plugin.assetPattern, plugin.latestVersion);
+            const auto ver = tag.substring (plugin.tagPrefix.length()).trim();
 
-            if (auto* assets = rel.getProperty ("assets", {}).getArray())
+            // First match → resolve asset download URL
+            if (plugin.latestVersion.isEmpty())
             {
-                for (auto& a : *assets)
+                plugin.latestVersion = ver;
+                const auto expected = expandPattern (plugin.assetPattern, ver);
+
+                if (auto* assets = rel.getProperty ("assets", {}).getArray())
                 {
-                    const auto name = a.getProperty ("name", {}).toString();
-                    if (name.equalsIgnoreCase (expected))
+                    for (auto& a : *assets)
                     {
-                        plugin.latestAssetUrl = a.getProperty ("browser_download_url", {}).toString();
-                        break;
+                        const auto name = a.getProperty ("name", {}).toString();
+                        if (name.equalsIgnoreCase (expected))
+                        {
+                            plugin.latestAssetUrl = a.getProperty ("browser_download_url", {}).toString();
+                            break;
+                        }
                     }
                 }
+
+                if (plugin.latestAssetUrl.isEmpty())
+                    plugin.releaseError = "No asset matching " + expected;
             }
 
-            if (plugin.latestAssetUrl.isEmpty())
-                plugin.releaseError = "No asset matching " + expected;
-            return;
+            // Collect changelog entry for every matching release
+            ChangelogEntry entry;
+            entry.version = ver;
+            entry.date    = rel.getProperty ("published_at", {}).toString().substring (0, 10);
+            entry.body    = rel.getProperty ("body", {}).toString().trim();
+            plugin.changelog.push_back (std::move (entry));
         }
 
-        plugin.releaseError = "No release found with prefix " + plugin.tagPrefix;
+        if (plugin.latestVersion.isEmpty())
+            plugin.releaseError = "No release found with prefix " + plugin.tagPrefix;
+
         return;
     }
 
@@ -252,4 +267,11 @@ void RegistryClient::resolveLatestRelease (RegistryPlugin& plugin,
 
     if (plugin.latestAssetUrl.isEmpty())
         plugin.releaseError = "No asset matching " + expected;
+
+    // Single changelog entry from /releases/latest
+    ChangelogEntry entry;
+    entry.version = plugin.latestVersion;
+    entry.date    = root.getProperty ("published_at", {}).toString().substring (0, 10);
+    entry.body    = root.getProperty ("body", {}).toString().trim();
+    plugin.changelog.push_back (std::move (entry));
 }
