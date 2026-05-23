@@ -429,14 +429,21 @@ void MainComponent::paint (juce::Graphics& g)
     g.setColour (bone);
     g.setFont (oswaldFont (28.0f, juce::Font::bold, 0.05f));
     g.drawText ("SHP PLUGIN MANAGER",
-                titleArea.removeFromTop (32),
+                titleArea.removeFromTop (28),
                 juce::Justification::bottomLeft,
                 true);
 
     g.setColour (dimBone);
     g.setFont (monoFont (10.5f));
     g.drawText ("Install, update, and manage your SHP VST3 suite",
-                titleArea.removeFromTop (16),
+                titleArea.removeFromTop (14),
+                juce::Justification::topLeft,
+                true);
+
+    g.setColour (dimBone.withAlpha (0.55f));
+    g.setFont (monoFont (9.0f));
+    g.drawText ("v" + juce::JUCEApplication::getInstance()->getApplicationVersion(),
+                titleArea.removeFromTop (12),
                 juce::Justification::topLeft,
                 true);
 
