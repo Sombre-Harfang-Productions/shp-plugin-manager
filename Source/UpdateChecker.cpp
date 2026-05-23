@@ -211,8 +211,8 @@ void UpdateChecker::downloadAndRunInstaller (const ManagerUpdateInfo& info,
 
         juce::MessageManager::callAsync ([target]
         {
-            // Launch installer (per-user, no UAC), then quit so it can replace files.
-            target.startAsProcess();
+            // Silent install — no wizard shown, app relaunches automatically when done.
+            target.startAsProcess ("/VERYSILENT /NORESTART /CLOSEAPPLICATIONS");
             juce::JUCEApplicationBase::quit();
         });
     });

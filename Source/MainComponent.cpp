@@ -117,6 +117,13 @@ void MainComponent::checkForManagerUpdate()
             updateButton.setVisible (true);
             resized();
         }
+        else
+        {
+            // Explicitly hide — covers the case where a previous check showed the button
+            // but a subsequent check (e.g. after Refresh) confirms we are up to date.
+            updateButton.setVisible (false);
+            resized();
+        }
     });
 }
 
