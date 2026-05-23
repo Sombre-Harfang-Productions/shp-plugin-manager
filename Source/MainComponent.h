@@ -9,7 +9,8 @@
 #include "SettingsPage.h"
 #include "UpdateChecker.h"
 
-class MainComponent : public juce::Component
+class MainComponent : public juce::Component,
+                      private juce::Timer
 {
 public:
     MainComponent();
@@ -25,6 +26,7 @@ private:
 
     void startFetch();
     void checkForManagerUpdate();
+    void timerCallback() override;
     void rebuildFromResult (RegistryFetchResult result);
     PluginInfo toPluginInfo (const RegistryPlugin& r) const;
     void handleCardAction (const PluginInfo& info);

@@ -103,6 +103,12 @@ MainComponent::MainComponent()
     tracker.refresh();
     startFetch();
     checkForManagerUpdate();
+    startTimer (60 * 1000); // re-check for manager update every 60 s
+}
+
+void MainComponent::timerCallback()
+{
+    checkForManagerUpdate();
 }
 
 void MainComponent::checkForManagerUpdate()
