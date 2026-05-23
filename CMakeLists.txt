@@ -44,6 +44,8 @@ target_sources(SHPPluginManager
         Source/MainWindow.cpp
         Source/MainComponent.h
         Source/MainComponent.cpp
+        Source/ChangelogDialog.h
+        Source/ChangelogDialog.cpp
         Source/PluginCardComponent.h
         Source/PluginCardComponent.cpp
         Source/PluginInfo.h

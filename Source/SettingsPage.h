@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 #include "Settings.h"
+#include "UpdateChecker.h"
+#include "ChangelogDialog.h"
 
 class SettingsPage : public juce::Component
 {
@@ -28,8 +30,9 @@ private:
     juce::Label    customPathDisplay;
     juce::TextButton browseBtn      { "Browse..." };
 
-    juce::TextButton saveBtn  { "Save" };
-    juce::TextButton closeBtn { "Back" };
+    juce::TextButton changelogBtn { "Changelog" };
+    juce::TextButton saveBtn      { "Save" };
+    juce::TextButton closeBtn     { "Back" };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SettingsPage)
 };

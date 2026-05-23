@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "PluginInfo.h"
 
 struct ManagerUpdateInfo
 {
@@ -21,6 +22,10 @@ public:
     // Downloads the installer into %TEMP%, spawns it, then quits the app.
     static void downloadAndRunInstaller (const ManagerUpdateInfo& info,
                                          std::function<void (juce::String)> onError);
+
+    // Fetches all manager releases and returns them as changelog entries (latest first).
+    // Callback fires on the JUCE message thread.
+    static void fetchChangelog (std::function<void (std::vector<ChangelogEntry>, juce::String)> callback);
 
     // Returns positive if `a` > `b`, 0 if equal, negative if `a` < `b`.
     // Pads missing parts with 0 (so "0.1" == "0.1.0").

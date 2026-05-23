@@ -110,6 +110,46 @@ void UpdateChecker::check (juce::String currentVersion, ResultCallback onResult)
     });
 }
 
+void UpdateChecker::fetchChangelog (std::function<void (std::vector<ChangelogEntry>, juce::String)> cb)
+{
+    juce::Thread::launch ([cb = std::move (cb)]
+    {
+        std::vector<ChangelogEntry> entries;
+        juce::String error;
+
+        const auto apiUrl = juce::String ("https://api.github.com/repos/")
+                          + kRepo + "/releases?per_page=100";
+        const auto body = httpGet (juce::URL (apiUrl), error);
+
+        if (body.isNotEmpty())
+        {
+            auto root = juce::JSON::parse (body);
+            if (auto* arr = root.getArray())
+            {
+                for (auto& rel : *arr)
+                {
+                    ChangelogEntry e;
+                    e.version = stripV (rel.getProperty ("tag_name", {}).toString());
+                    e.date    = rel.getProperty ("published_at", {}).toString().substring (0, 10);
+                    e.body    = rel.getProperty ("body", {}).toString().trim();
+                    entries.push_back (std::move (e));
+                }
+            }
+            else if (error.isEmpty())
+            {
+                error = "Invalid response from GitHub";
+            }
+        }
+
+        juce::MessageManager::callAsync ([cb = std::move (cb),
+                                          entries = std::move (entries),
+                                          error = std::move (error)]() mutable
+        {
+            cb (std::move (entries), std::move (error));
+        });
+    });
+}
+
 void UpdateChecker::downloadAndRunInstaller (const ManagerUpdateInfo& info,
                                              std::function<void (juce::String)> onError)
 {

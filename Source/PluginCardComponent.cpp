@@ -1,59 +1,9 @@
 #include "PluginCardComponent.h"
+#include "ChangelogDialog.h"
 #include "Theme.h"
 #include <BinaryData.h>
 
 using namespace shp::theme;
-
-//==============================================================================
-namespace
-{
-
-class ChangelogDialog : public juce::Component
-{
-public:
-    explicit ChangelogDialog (const PluginInfo& pluginInfo)
-    {
-        juce::String text;
-
-        if (pluginInfo.changelog.empty())
-        {
-            text = "(aucune note de version disponible)";
-        }
-        else
-        {
-            for (const auto& entry : pluginInfo.changelog)
-            {
-                text << "v" << entry.version;
-                if (entry.date.isNotEmpty())
-                    text << "   " << entry.date;
-                text << "\n"
-                     << juce::String (std::string (44, '-').c_str())
-                     << "\n";
-                text << (entry.body.isNotEmpty() ? entry.body : "(pas de notes)") << "\n\n";
-            }
-        }
-
-        editor.setMultiLine (true);
-        editor.setReadOnly (true);
-        editor.setScrollbarsShown (true);
-        editor.setFont (monoFont (11.0f));
-        editor.setText (text.trimEnd(), false);
-        editor.setColour (juce::TextEditor::backgroundColourId, surfaceDeep);
-        editor.setColour (juce::TextEditor::textColourId,       bone);
-        editor.setColour (juce::TextEditor::outlineColourId,    railDark);
-        editor.setColour (juce::TextEditor::shadowColourId,     juce::Colours::transparentBlack);
-        addAndMakeVisible (editor);
-
-        setSize (520, 400);
-    }
-
-    void resized() override { editor.setBounds (getLocalBounds().reduced (8)); }
-
-private:
-    juce::TextEditor editor;
-};
-
-} // anonymous namespace
 
 PluginCardComponent::PluginCardComponent (PluginInfo i)
     : info (std::move (i))
@@ -210,14 +160,6 @@ void PluginCardComponent::resized()
 
 void PluginCardComponent::showChangelog()
 {
-    auto* content = new ChangelogDialog (info);
-
-    juce::DialogWindow::LaunchOptions opts;
-    opts.content.setOwned (content);
-    opts.dialogTitle            = info.name.toUpperCase() + " — NOTES DE VERSION";
-    opts.dialogBackgroundColour = background;
-    opts.escapeKeyTriggersCloseButton = true;
-    opts.useNativeTitleBar      = false;
-    opts.resizable              = false;
-    opts.launchAsync();
+    ChangelogDialog::show (info.name.toUpperCase() + " — NOTES DE VERSION",
+                           info.changelog);
 }

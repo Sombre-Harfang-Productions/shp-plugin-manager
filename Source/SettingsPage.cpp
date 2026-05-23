@@ -47,8 +47,39 @@ SettingsPage::SettingsPage (Settings& s) : settings (s)
     addAndMakeVisible (pathLabel);
     addAndMakeVisible (customPathDisplay);
     addAndMakeVisible (browseBtn);
+    addAndMakeVisible (changelogBtn);
     addAndMakeVisible (saveBtn);
     addAndMakeVisible (closeBtn);
+
+    changelogBtn.setColour (juce::TextButton::buttonColourId,  shp::theme::surface);
+    changelogBtn.setColour (juce::TextButton::textColourOffId, shp::theme::bone.withAlpha (0.86f));
+    changelogBtn.onClick = [this]
+    {
+        changelogBtn.setEnabled (false);
+        changelogBtn.setButtonText ("Chargement...");
+
+        juce::Component::SafePointer<SettingsPage> self (this);
+        UpdateChecker::fetchChangelog ([self] (std::vector<ChangelogEntry> entries, juce::String err)
+        {
+            if (self == nullptr) return;
+            self->changelogBtn.setEnabled (true);
+            self->changelogBtn.setButtonText ("Changelog");
+
+            if (entries.empty())
+            {
+                juce::NativeMessageBox::showAsync (
+                    juce::MessageBoxOptions()
+                        .withIconType (juce::MessageBoxIconType::WarningIcon)
+                        .withTitle ("Changelog indisponible")
+                        .withMessage (err.isNotEmpty() ? err : "Aucune version trouvée.")
+                        .withButton ("OK"),
+                    nullptr);
+                return;
+            }
+
+            ChangelogDialog::show ("SHP PLUGIN MANAGER — NOTES DE VERSION", entries);
+        });
+    };
 
     browseBtn.onClick = [this] { pickCustomDir(); };
     saveBtn.onClick   = [this]
@@ -138,6 +169,8 @@ void SettingsPage::resized()
 
     auto footer = bounds.removeFromBottom (40);
     saveBtn.setBounds (footer.removeFromRight (140).withSizeKeepingCentre (130, 30));
+    footer.removeFromRight (8);
+    changelogBtn.setBounds (footer.removeFromRight (120).withSizeKeepingCentre (110, 30));
 
     auto place = [&] (juce::Component& c, int h)
     {
