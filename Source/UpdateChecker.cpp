@@ -211,8 +211,21 @@ void UpdateChecker::downloadAndRunInstaller (const ManagerUpdateInfo& info,
 
         juce::MessageManager::callAsync ([target]
         {
-            // Silent install — no wizard shown, app relaunches automatically when done.
-            target.startAsProcess ("/VERYSILENT /NORESTART /CLOSEAPPLICATIONS");
+            // Launch PowerShell detached: wait for THIS process to fully exit,
+            // then run the installer.  This avoids the race where Inno Setup
+            // tries to replace the exe while it is still locked by the running
+            // process, causing the file-replace to fail silently.
+            const juce::String pid (static_cast<int> (::GetCurrentProcessId()));
+            const auto escaped = target.getFullPathName().replace ("'", "''");
+            const auto psCmd   = "Wait-Process -Id " + pid
+                               + " -ErrorAction SilentlyContinue; "
+                               + "Start-Process -FilePath '" + escaped
+                               + "' -ArgumentList '/VERYSILENT','/NORESTART'";
+
+            juce::File ("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe")
+                .startAsProcess ("-WindowStyle Hidden -NonInteractive -NoProfile -Command \""
+                                 + psCmd + "\"");
+
             juce::JUCEApplicationBase::quit();
         });
     });
