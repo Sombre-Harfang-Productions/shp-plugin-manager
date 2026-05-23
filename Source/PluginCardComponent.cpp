@@ -27,7 +27,7 @@ public:
                 if (entry.date.isNotEmpty())
                     text << "   " << entry.date;
                 text << "\n"
-                     << juce::String (juce::CharPointer_UTF8 ("\xe2\x94\x80")).repeated (44)
+                     << juce::String (std::string (44, '-').c_str())
                      << "\n";
                 text << (entry.body.isNotEmpty() ? entry.body : "(pas de notes)") << "\n\n";
             }
