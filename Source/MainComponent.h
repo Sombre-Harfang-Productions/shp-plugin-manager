@@ -43,6 +43,8 @@ private:
     juce::TextButton updateAllButton  { "Update All" };
     int installableCount { 0 };
     int updatableCount   { 0 };
+    int installedCount   { 0 };
+    int totalCount       { 0 };
     bool bulkInProgress  { false };
 
     std::unique_ptr<CardList> cardList;

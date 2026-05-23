@@ -6,9 +6,10 @@ using namespace shp::theme;
 
 namespace
 {
-constexpr int kHeaderHeight = 88;
-constexpr int kCardHeight   = 100;
-constexpr int kCardGap      = 10;
+constexpr int kHeaderHeight = 74;
+constexpr int kCardHeight   = 56;
+constexpr int kCardGap      = 4;
+constexpr int kFooterHeight = 34;
 constexpr int kSidePadding  = 24;
 }
 
@@ -19,9 +20,11 @@ public:
                      std::function<void (const PluginInfo&)> onAction)
     {
         cards.clear();
+        int idx = 0;
         for (auto& info : infos)
         {
             auto card = std::make_unique<PluginCardComponent> (std::move (info));
+            card->setRowIndex (idx++);
             card->onAction = onAction;
             addAndMakeVisible (*card);
             cards.push_back (std::move (card));
@@ -77,8 +80,8 @@ MainComponent::MainComponent()
     addAndMakeVisible (viewport);
 
     addChildComponent (updateButton);
-    updateButton.setColour (juce::TextButton::buttonColourId, blood);
-    updateButton.setColour (juce::TextButton::textColourOffId, juce::Colours::white);
+    updateButton.setColour (juce::TextButton::buttonColourId,  updateAmber.withAlpha (0.10f));
+    updateButton.setColour (juce::TextButton::textColourOffId, updateAmber);
     updateButton.onClick = [this]
     {
         if (pendingManagerUpdate.installerUrl.isEmpty())
@@ -98,7 +101,7 @@ MainComponent::MainComponent()
             });
     };
 
-    setSize (820, 800);
+    setSize (1050, 620);
 
     tracker.refresh();
     startFetch();
@@ -267,20 +270,19 @@ void MainComponent::rebuildCards()
     infos.reserve (manifestByPluginId.size());
     installableCount = 0;
     updatableCount   = 0;
-    
-    juce::String debugOut;
+    installedCount   = 0;
+    totalCount       = 0;
 
     for (auto& [id, r] : manifestByPluginId)
     {
         auto info = toPluginInfo (r);
-        debugOut += id + " URL: " + info.manualUrl + "\n";
+        ++totalCount;
         if (info.status == PluginInfo::Status::notInstalled)    ++installableCount;
         if (info.status == PluginInfo::Status::updateAvailable) ++updatableCount;
+        if (info.status == PluginInfo::Status::upToDate
+            || info.status == PluginInfo::Status::updateAvailable) ++installedCount;
         infos.push_back (std::move (info));
     }
-    
-    juce::File logFile ("C:\\Users\\Jotnar\\AppData\\Roaming\\SHP\\manager\\debug_ui.log");
-    logFile.replaceWithText (debugOut);
 
     cardList->setPlugins (std::move (infos),
                           [this] (const PluginInfo& i) { handleCardAction (i); });
@@ -425,44 +427,70 @@ void MainComponent::paint (juce::Graphics& g)
     if (settingsPage != nullptr)
         return;  // SettingsPage paints itself fullscreen
 
-    auto header = getLocalBounds().removeFromTop (kHeaderHeight);
+    auto fullBounds = getLocalBounds();
 
-    g.setColour (surfaceDeep);
+    // ── Header ───────────────────────────────────────────────────────────────
+    auto header = fullBounds.removeFromTop (kHeaderHeight);
+    g.setColour (surface);
     g.fillRect (header);
     g.setColour (railDark);
     g.drawHorizontalLine (header.getBottom() - 1, (float) header.getX(), (float) header.getRight());
 
-    auto logoArea = header.removeFromLeft (kHeaderHeight).reduced (16);
+    // Logo
+    auto logoArea = header.removeFromLeft (kHeaderHeight).reduced (19);
     if (logo.isValid())
         g.drawImage (logo, logoArea.toFloat(), juce::RectanglePlacement::centred);
 
-    auto titleArea = header.reduced (8, 14);
-    titleArea.removeFromRight (220);
+    // Title block (leave right side for buttons)
+    auto titleArea = header.reduced (4, 0).withTrimmedRight (updateButton.isVisible() ? 420 : 228);
 
     g.setColour (bone);
-    g.setFont (oswaldFont (28.0f, juce::Font::bold, 0.05f));
+    g.setFont (oswaldFont (19.0f, juce::Font::bold, 0.12f));
     g.drawText ("SHP PLUGIN MANAGER",
-                titleArea.removeFromTop (28),
-                juce::Justification::bottomLeft,
-                true);
+                titleArea.removeFromTop (juce::roundToInt (kHeaderHeight * 0.45f))
+                         .withTrimmedTop (16),
+                juce::Justification::bottomLeft, true);
 
     g.setColour (dimBone);
     g.setFont (monoFont (10.5f));
+    auto subtitleRow = titleArea.removeFromTop (16);
     g.drawText ("Install, update, and manage your SHP VST3 suite",
-                titleArea.removeFromTop (14),
-                juce::Justification::topLeft,
-                true);
+                subtitleRow, juce::Justification::centredLeft, true);
 
-    g.setColour (dimBone.withAlpha (0.55f));
-    g.setFont (monoFont (9.0f));
+    g.setColour (dust);
+    g.setFont (monoFont (9.5f));
     g.drawText ("v" + juce::JUCEApplication::getInstance()->getApplicationVersion(),
-                titleArea.removeFromTop (12),
-                juce::Justification::topLeft,
-                true);
+                titleArea.removeFromTop (14),
+                juce::Justification::centredLeft, true);
 
+    // ── Footer ───────────────────────────────────────────────────────────────
+    auto footer = getLocalBounds().removeFromBottom (kFooterHeight);
+    g.setColour (surface);
+    g.fillRect (footer);
+    g.setColour (railDark);
+    g.drawHorizontalLine (footer.getY(), (float) footer.getX(), (float) footer.getRight());
+
+    g.setFont (monoFont (10.5f));
+    const auto footerInner = footer.reduced (kSidePadding, 0);
+
+    g.setColour (dust);
+    g.drawText (juce::String (installedCount) + "/" + juce::String (totalCount) + " installed",
+                footerInner, juce::Justification::centredLeft, true);
+
+    if (updatableCount > 0)
+    {
+        g.setColour (updateAmber.withAlpha (0.70f));
+        g.drawText (juce::String (updatableCount) + " update"
+                    + (updatableCount == 1 ? "" : "s") + " available",
+                    footerInner, juce::Justification::centredRight, true);
+    }
+
+    // ── Status / progress banner ─────────────────────────────────────────────
     if (loadState != LoadState::loaded || cardList->count() == 0 || loadStatusMessage.isNotEmpty())
     {
-        auto bodyArea = getLocalBounds().withTrimmedTop (kHeaderHeight).reduced (kSidePadding, 12);
+        auto bodyArea   = getLocalBounds().withTrimmedTop (kHeaderHeight)
+                                          .withTrimmedBottom (kFooterHeight)
+                                          .reduced (kSidePadding, 8);
         auto bannerArea = bodyArea.removeFromTop (26);
 
         auto msg = loadStatusMessage;
@@ -471,17 +499,17 @@ void MainComponent::paint (juce::Graphics& g)
             switch (loadState)
             {
                 case LoadState::idle:    msg = "Ready."; break;
-                case LoadState::loading: msg = "Fetching registry…"; break;
+                case LoadState::loading: msg = "Fetching registry\xe2\x80\xa6"; break;
                 case LoadState::loaded:  msg = "No plugins in registry."; break;
                 case LoadState::error:   msg = "Registry error."; break;
             }
         }
 
         const bool isError = loadState == LoadState::error;
-        g.setColour ((isError ? blood : dust).withAlpha (0.20f));
+        g.setColour ((isError ? blood : dust).withAlpha (0.18f));
         g.fillRoundedRectangle (bannerArea.toFloat(), 3.0f);
-        g.setColour (isError ? blood.brighter (0.2f) : bone.withAlpha (0.8f));
-        g.setFont (monoFont (10.5f, juce::Font::bold));
+        g.setColour (isError ? blood.brighter (0.2f) : bone.withAlpha (0.75f));
+        g.setFont (monoFont (10.5f));
         g.drawFittedText (msg, bannerArea.reduced (8, 2), juce::Justification::centredLeft, 1);
     }
 }
@@ -496,22 +524,25 @@ void MainComponent::resized()
 
     auto bounds = getLocalBounds();
     auto header = bounds.removeFromTop (kHeaderHeight);
+    bounds.removeFromBottom (kFooterHeight);
 
+    // Header buttons — right-aligned, vertically centred
     auto headerButtons = header.reduced (12).removeFromRight (
-        updateButton.isVisible() ? 410 : 220);
-    headerButtons.removeFromTop (headerButtons.getHeight() / 2 - 16);
-    settingsButton.setBounds (headerButtons.removeFromRight (100).withHeight (30));
-    headerButtons.removeFromRight (10);
-    refreshButton.setBounds (headerButtons.removeFromRight (100).withHeight (30));
+        updateButton.isVisible() ? 420 : 228);
+    headerButtons = headerButtons.withSizeKeepingCentre (headerButtons.getWidth(), 30);
+
+    settingsButton.setBounds (headerButtons.removeFromRight (100));
+    headerButtons.removeFromRight (8);
+    refreshButton.setBounds (headerButtons.removeFromRight (100));
     if (updateButton.isVisible())
     {
-        headerButtons.removeFromRight (10);
-        updateButton.setBounds (headerButtons.removeFromRight (180).withHeight (30));
+        headerButtons.removeFromRight (8);
+        updateButton.setBounds (headerButtons.removeFromRight (190));
     }
 
-    bounds.reduce (kSidePadding, 16);
+    bounds.reduce (kSidePadding, 8);
 
-    // Reserve a slim banner row at the top of body when a message is shown.
+    // Reserve banner row when a message is shown
     const bool needBanner = loadState != LoadState::loaded
                          || cardList->count() == 0
                          || loadStatusMessage.isNotEmpty();
@@ -521,7 +552,7 @@ void MainComponent::resized()
     if (installAllButton.isVisible() || updateAllButton.isVisible())
     {
         auto toolbar = bounds.removeFromTop (34);
-        bounds.removeFromTop (8);
+        bounds.removeFromTop (6);
         if (updateAllButton.isVisible())
             updateAllButton.setBounds (toolbar.removeFromRight (160).withHeight (30));
         if (installAllButton.isVisible())

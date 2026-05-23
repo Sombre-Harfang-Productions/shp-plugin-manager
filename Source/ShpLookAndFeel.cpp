@@ -7,10 +7,11 @@ ShpLookAndFeel::ShpLookAndFeel()
 {
     setColour (juce::ResizableWindow::backgroundColourId, background);
     setColour (juce::Label::textColourId,                 bone);
-    setColour (juce::TextButton::buttonColourId,          surface);
-    setColour (juce::TextButton::buttonOnColourId,        bloodDeep);
-    setColour (juce::TextButton::textColourOffId,         dimBone);
-    setColour (juce::TextButton::textColourOnId,          juce::Colours::white);
+    // Default = ghost button: transparent bg, dimBone text
+    setColour (juce::TextButton::buttonColourId,          juce::Colours::transparentBlack);
+    setColour (juce::TextButton::buttonOnColourId,        juce::Colours::transparentBlack);
+    setColour (juce::TextButton::textColourOffId,         bone.withAlpha (0.86f));
+    setColour (juce::TextButton::textColourOnId,          bone.withAlpha (0.86f));
     setColour (juce::ScrollBar::thumbColourId,            dust.withAlpha (0.55f));
     setColour (juce::ScrollBar::trackColourId,            surfaceDeep);
 }
@@ -21,27 +22,27 @@ void ShpLookAndFeel::drawButtonBackground (juce::Graphics& g,
                                            bool shouldDrawButtonAsHighlighted,
                                            bool shouldDrawButtonAsDown)
 {
-    const auto bounds = button.getLocalBounds().toFloat().reduced (1.0f);
-    const auto active = button.getToggleState();
+    const auto bounds = button.getLocalBounds().toFloat().reduced (0.5f);
+    const bool lit    = shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown;
 
-    juce::ColourGradient fill (active ? blood : juce::Colour::fromRGB (18, 18, 22),
-                               bounds.getX(),
-                               bounds.getY(),
-                               active ? bloodDeep : juce::Colour::fromRGB (5, 5, 8),
-                               bounds.getRight(),
-                               bounds.getBottom(),
-                               false);
-    g.setGradientFill (fill);
-    g.fillRoundedRectangle (bounds, 2.0f);
+    // Fill — use buttonColourId set per-button (transparent for ghost, tinted for update/install)
+    auto bgColour = button.findColour (juce::TextButton::buttonColourId);
+    if (lit) bgColour = bgColour.brighter (0.12f);
+    g.setColour (bgColour);
+    g.fillRoundedRectangle (bounds, 4.0f);
 
-    if (shouldDrawButtonAsDown || shouldDrawButtonAsHighlighted)
+    // Border — ghost buttons get railLight; tinted buttons get text colour at 0.45
+    const bool hasBg = bgColour.getAlpha() > 10;
+    if (hasBg)
     {
-        g.setColour (bloodBright.withAlpha (0.16f));
-        g.fillRoundedRectangle (bounds.reduced (3.0f, 2.0f), 1.5f);
+        auto textCol = button.findColour (juce::TextButton::textColourOffId);
+        g.setColour (textCol.withAlpha (lit ? 0.75f : 0.45f));
     }
-
-    g.setColour ((active ? bloodBright : dust).withAlpha (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown ? 0.95f : 0.68f));
-    g.drawRoundedRectangle (bounds, 2.0f, 1.0f);
+    else
+    {
+        g.setColour (railLight.withAlpha (lit ? 0.85f : 0.55f));
+    }
+    g.drawRoundedRectangle (bounds, 4.0f, 1.0f);
 }
 
 void ShpLookAndFeel::drawButtonText (juce::Graphics& g,
@@ -49,10 +50,10 @@ void ShpLookAndFeel::drawButtonText (juce::Graphics& g,
                                      bool,
                                      bool)
 {
-    g.setFont (monoFont (10.5f, juce::Font::bold));
-    g.setColour (button.getToggleState() ? juce::Colours::white : bone.withAlpha (0.86f));
+    g.setFont (monoFont (10.5f));
+    g.setColour (button.findColour (juce::TextButton::textColourOffId));
     g.drawFittedText (button.getButtonText().toUpperCase(),
-                      button.getLocalBounds().reduced (8, 2),
+                      button.getLocalBounds().reduced (6, 2),
                       juce::Justification::centred,
                       1);
 }
